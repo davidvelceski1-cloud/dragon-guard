@@ -1,0 +1,244 @@
+/* Dragon Guard – page & overlay styles.
+   The canvas is sized from JS; overlays scale with it through the --u variable (1 logical px). */
+
+:root { --gold: #ffd54f; }
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Lock the page: no scroll, no zoom, no selection, no callouts */
+html, body {
+  position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #120a26;
+  color: #fff;
+  font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+  touch-action: none;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Respect notches / home indicators */
+#wrap {
+  position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+           env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+
+#frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The 9:16 letterboxed play area; JS sets width/height and --u */
+#stage {
+  --u: 1px;
+  position: relative;
+  overflow: hidden;
+  background: #24154f;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
+}
+
+#game { display: block; touch-action: none; }
+
+/* ---------- Overlay screens ---------- */
+.screen {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 14);
+  padding: calc(var(--u) * 24) calc(var(--u) * 20);
+  background: rgba(16, 8, 40, 0.8);
+  text-align: center;
+  animation: fadeIn 0.25s ease;
+}
+.screen.hidden { display: none; }
+
+/* Title lets the animated castle scene show through the middle */
+.screen.title {
+  justify-content: space-between;
+  background: linear-gradient(rgba(16, 8, 40, 0.85) 0%, rgba(16, 8, 40, 0.1) 36%,
+                              rgba(16, 8, 40, 0.1) 52%, rgba(16, 8, 40, 0.88) 74%);
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+h2 {
+  font-size: calc(var(--u) * 30);
+  color: var(--gold);
+  text-shadow: 0 calc(var(--u) * 3) 0 #5a2d00;
+}
+
+.logo-wrap { margin-top: calc(var(--u) * 18); }
+.logo {
+  font-size: calc(var(--u) * 58);
+  font-weight: 900;
+  line-height: 0.95;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-shadow: 0 calc(var(--u) * 4) 0 #b35400, 0 calc(var(--u) * 8) calc(var(--u) * 16) rgba(0, 0, 0, 0.55);
+}
+.tagline {
+  margin-top: calc(var(--u) * 10);
+  font-size: calc(var(--u) * 16);
+  font-weight: 700;
+  color: #ffe9f0;
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--u) * 11);
+  width: 100%;
+}
+
+/* Buttons: never smaller than 48 CSS px */
+.btn {
+  min-height: max(48px, calc(var(--u) * 52));
+  min-width: calc(var(--u) * 210);
+  padding: 0 calc(var(--u) * 24);
+  border: none;
+  border-radius: calc(var(--u) * 26);
+  font-family: inherit;
+  font-size: calc(var(--u) * 20);
+  font-weight: 800;
+  color: #4a2500;
+  background: linear-gradient(#ffe082, #ffb300);
+  box-shadow: 0 calc(var(--u) * 4) 0 #b36b00;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.btn:active { transform: translateY(calc(var(--u) * 3)); box-shadow: 0 calc(var(--u) * 1) 0 #b36b00; }
+.btn.secondary {
+  color: #fff;
+  background: linear-gradient(#b39ddb, #7e57c2);
+  box-shadow: 0 calc(var(--u) * 4) 0 #4527a0;
+}
+.btn.secondary:active { box-shadow: 0 calc(var(--u) * 1) 0 #4527a0; }
+.btn.small {
+  min-width: calc(var(--u) * 150);
+  font-size: calc(var(--u) * 16);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: none;
+}
+
+/* Level select */
+.level-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: calc(var(--u) * 10);
+  width: 100%;
+  max-width: calc(var(--u) * 300);
+}
+.level-btn {
+  min-height: max(56px, calc(var(--u) * 72));
+  border: none;
+  border-radius: calc(var(--u) * 16);
+  font-family: inherit;
+  color: #4a2500;
+  background: linear-gradient(#ffe082, #ffb300);
+  box-shadow: 0 calc(var(--u) * 4) 0 #b36b00;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 2);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.level-btn:active { transform: translateY(calc(var(--u) * 3)); }
+.level-btn .num { font-size: calc(var(--u) * 26); font-weight: 900; line-height: 1; }
+.level-btn .stars { font-size: calc(var(--u) * 14); letter-spacing: calc(var(--u) * 1); color: #8a4b00; }
+.level-btn.locked {
+  color: rgba(255, 255, 255, 0.5);
+  background: #3a3060;
+  box-shadow: 0 calc(var(--u) * 4) 0 #221a40;
+  cursor: default;
+}
+.level-btn.endless {
+  grid-column: span 3;
+  flex-direction: row;
+  gap: calc(var(--u) * 10);
+  font-size: calc(var(--u) * 18);
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(#ef5350, #b71c1c);
+  box-shadow: 0 calc(var(--u) * 4) 0 #6d0f0f;
+}
+.level-btn.endless.locked { background: #3a3060; box-shadow: 0 calc(var(--u) * 4) 0 #221a40; color: rgba(255, 255, 255, 0.5); }
+.level-btn.endless small { font-size: calc(var(--u) * 13); font-weight: 700; opacity: 0.85; }
+
+/* How to play (the only scrollable element) */
+.howto {
+  max-width: calc(var(--u) * 320);
+  max-height: 72%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  padding: calc(var(--u) * 10) calc(var(--u) * 14);
+  border-radius: calc(var(--u) * 14);
+  background: rgba(255, 255, 255, 0.07);
+  text-align: left;
+  font-size: calc(var(--u) * 14.5);
+  line-height: 1.4;
+}
+.howto ul { list-style: none; }
+.howto li { margin: calc(var(--u) * 7) 0; }
+.howto b { color: var(--gold); }
+
+/* Results */
+.big-stars { font-size: calc(var(--u) * 56); letter-spacing: calc(var(--u) * 6); line-height: 1; }
+.big-stars span { display: inline-block; animation: pop 0.45s ease both; }
+.big-stars .on { color: var(--gold); text-shadow: 0 0 calc(var(--u) * 14) rgba(255, 213, 79, 0.7); }
+.big-stars .off { color: rgba(255, 255, 255, 0.2); }
+@keyframes pop { 0% { transform: scale(0); } 70% { transform: scale(1.3); } 100% { transform: scale(1); } }
+
+.stat { font-size: calc(var(--u) * 20); font-weight: 800; }
+.sub { font-size: calc(var(--u) * 14); opacity: 0.88; max-width: calc(var(--u) * 300); }
+
+/* ---------- Rotate overlay ---------- */
+#rotate {
+  position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0;
+  z-index: 100;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 20px;
+  background: #120a26;
+  text-align: center;
+}
+#rotate.show { display: flex; }
+#rotate .phone {
+  width: 46px;
+  height: 80px;
+  border: 5px solid var(--gold);
+  border-radius: 10px;
+  animation: rot 2s ease-in-out infinite;
+}
+#rotate p { font-size: 22px; font-weight: 800; color: var(--gold); }
+#rotate small { font-size: 14px; opacity: 0.8; }
+@keyframes rot { 0%, 20% { transform: rotate(-90deg); } 60%, 100% { transform: rotate(0deg); } }

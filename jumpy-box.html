@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#1b2735">
+  <title>Jumpy Box</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #1b2735;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #game { width: 100%; height: 100%; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.80.1/phaser.min.js"></script>
+</head>
+<body>
+  <div id="game"></div>
+
+  <script>
+    // Logical game size (portrait, 9:16). Phaser scales it to fit the phone screen.
+    const W = 540;
+    const H = 960;
+    const GROUND_Y = 780;
+    const GRAVITY = 2200;
+    const JUMP_VELOCITY = -950;
+    const START_SPEED = 360;
+    const MAX_SPEED = 820;
+
+    function loadBest() {
+      try { return parseInt(localStorage.getItem('jumpy-best') || '0', 10) || 0; } catch (e) { return 0; }
+    }
+    function saveBest(v) {
+      try { localStorage.setItem('jumpy-best', String(v)); } catch (e) { /* ignore */ }
+    }
+
+    class GameScene extends Phaser.Scene {
+      constructor() { super('game'); }
+
+      create() {
+        this.makeTextures();
+
+        this.state = 'ready'; // ready -> playing -> over
+        this.score = 0;
+        this.speed = START_SPEED;
+        this.best = loadBest();
+
+        // Sky
+        this.add.rectangle(0, 0, W, H, 0x87ceeb).setOrigin(0);
+        this.add.circle(W - 90, 150, 50, 0xfff3b0);
+
+        // Clouds (parallax)
+        this.clouds = [];
+        for (let i = 0; i < 4; i++) {
+          const c = this.add.image(Phaser.Math.Between(0, W), Phaser.Math.Between(220, 560), 'cloud')
+            .setAlpha(0.9)
+            .setScale(Phaser.Math.FloatBetween(0.7, 1.2));
+          this.clouds.push(c);
+        }
+
+        // Ground (visual scrolling strip + invisible static physics body)
+        this.groundTile = this.add.tileSprite(0, GROUND_Y, W, H - GROUND_Y, 'ground').setOrigin(0);
+        this.ground = this.add.zone(W / 2, GROUND_Y + (H - GROUND_Y) / 2, W, H - GROUND_Y);
+        this.physics.add.existing(this.ground, true);
+
+        // Player
+        this.player = this.physics.add.sprite(130, GROUND_Y - 30, 'player');
+        this.player.body.setSize(50, 54, true);
+        this.player.setDepth(2);
+        this.physics.add.collider(this.player, this.ground);
+
+        // Obstacles
+        this.obstacles = this.physics.add.group({ allowGravity: false, immovable: true });
+        this.physics.add.overlap(this.player, this.obstacles, this.gameOver, null, this);
+
+        // Score UI
+        this.scoreText = this.add.text(W / 2, 70, '0', {
+          fontFamily: 'Arial Black, Arial, sans-serif',
+          fontSize: '72px',
+          color: '#ffffff',
+          stroke: '#1b2735',
+          strokeThickness: 10
+        }).setOrigin(0.5).setDepth(5);
+
+        this.bestText = this.add.text(W / 2, 130, 'BEST ' + this.best, {
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '26px',
+          color: '#1b2735',
+          fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(5);
+
+        // Start hint
+        this.hint = this.add.text(W / 2, 420, 'TAP TO JUMP', {
+          fontFamily: 'Arial Black, Arial, sans-serif',
+          fontSize: '44px',
+          color: '#ffffff',
+          stroke: '#1b2735',
+          strokeThickness: 8
+        }).setOrigin(0.5).setDepth(5);
+        this.tweens.add({ targets: this.hint, scale: 1.08, duration: 600, yoyo: true, repeat: -1 });
+
+        // Input: tap / click / space
+        this.input.on('pointerdown', this.onPress, this);
+        this.input.on('pointerup', this.onRelease, this);
+        this.input.keyboard.on('keydown-SPACE', this.onPress, this);
+        this.input.keyboard.on('keyup-SPACE', this.onRelease, this);
+      }
+
+      makeTextures() {
+        if (this.textures.exists('player')) return;
+        const g = this.make.graphics({ x: 0, y: 0, add: false });
+
+        // Player: yellow rounded box with an eye
+        g.fillStyle(0xe6a800).fillRoundedRect(0, 4, 60, 56, 14);
+        g.fillStyle(0xffcc00).fillRoundedRect(0, 0, 60, 54, 14);
+        g.fillStyle(0xffffff).fillCircle(42, 20, 10);
+        g.fillStyle(0x1b2735).fillCircle(45, 20, 5);
+        g.fillStyle(0xff8a65).fillRoundedRect(36, 38, 18, 6, 3);
+        g.generateTexture('player', 60, 60);
+        g.clear();
+
+        // Obstacles: three heights
+        [70, 100, 130].forEach((h, i) => {
+          g.fillStyle(0x2e7d32).fillRoundedRect(0, 0, 46, h, 10);
+          g.fillStyle(0x43a047).fillRoundedRect(8, 6, 10, h - 12, 5);
+          g.generateTexture('obs' + i, 46, h);
+          g.clear();
+        });
+
+        // Ground tile
+        const gh = H - GROUND_Y;
+        g.fillStyle(0x8d5a2b).fillRect(0, 0, 64, gh);
+        g.fillStyle(0x7a4c22);
+        g.fillRect(10, 40, 8, 8); g.fillRect(40, 80, 10, 8); g.fillRect(22, 130, 8, 8);
+        g.fillStyle(0x5cb85c).fillRect(0, 0, 64, 20);
+        g.fillStyle(0x4cae4c).fillRect(0, 16, 64, 6);
+        g.generateTexture('ground', 64, gh);
+        g.clear();
+
+        // Cloud
+        g.fillStyle(0xffffff);
+        g.fillCircle(40, 40, 28); g.fillCircle(75, 30, 32); g.fillCircle(110, 42, 24);
+        g.fillRect(40, 40, 70, 26);
+        g.generateTexture('cloud', 140, 70);
+        g.destroy();
+      }
+
+      onPress() {
+        if (this.state === 'over') return;
+        if (this.state === 'ready') this.startGame();
+        this.jump();
+      }
+
+      onRelease() {
+        // Short tap = short hop: cut the jump if the finger is released early
+        if (this.state !== 'playing') return;
+        if (this.player.body.velocity.y < -350) {
+          this.player.body.setVelocityY(this.player.body.velocity.y * 0.55);
+        }
+      }
+
+      startGame() {
+        this.state = 'playing';
+        this.tweens.killTweensOf(this.hint);
+        this.tweens.add({ targets: this.hint, alpha: 0, duration: 200, onComplete: () => this.hint.destroy() });
+        this.scheduleSpawn(700);
+      }
+
+      onGround() {
+        const b = this.player.body;
+        return b.touching.down || b.blocked.down;
+      }
+
+      jump() {
+        if (!this.onGround()) return;
+        this.player.body.setVelocityY(JUMP_VELOCITY);
+        this.player.setScale(0.85, 1.15);
+        this.tweens.add({ targets: this.player, scaleX: 1, scaleY: 1, duration: 180 });
+      }
+
+      scheduleSpawn(delay) {
+        this.spawnTimer = this.time.delayedCall(delay, () => {
+          this.spawnObstacle();
+          // Gaps shrink as the score climbs, but always stay longer than a full jump
+          const maxGap = Math.max(1150, 1900 - this.score * 25);
+          this.scheduleSpawn(Phaser.Math.Between(1000, maxGap));
+        });
+      }
+
+      spawnObstacle() {
+        const key = 'obs' + Phaser.Math.Between(0, 2);
+        const obs = this.obstacles.create(W + 60, GROUND_Y, key);
+        obs.setOrigin(0.5, 1);
+        obs.body.setSize(38, obs.height - 6, true);
+        obs.body.setVelocityX(-this.speed);
+        obs.scored = false;
+      }
+
+      addScore() {
+        this.score++;
+        this.scoreText.setText(this.score);
+        this.tweens.add({ targets: this.scoreText, scale: 1.25, duration: 90, yoyo: true });
+      }
+
+      gameOver() {
+        if (this.state === 'over') return;
+        this.state = 'over';
+        if (this.spawnTimer) this.spawnTimer.remove();
+        this.physics.pause();
+        this.player.setTint(0xff5555);
+        this.cameras.main.shake(200, 0.012);
+
+        const isNewBest = this.score > this.best;
+        if (isNewBest) {
+          this.best = this.score;
+          saveBest(this.best);
+        }
+        this.bestText.setText('BEST ' + this.best);
+
+        // Overlay + panel
+        const ui = this.add.container(0, 0).setDepth(10).setAlpha(0);
+        ui.add(this.add.rectangle(0, 0, W, H, 0x000000, 0.45).setOrigin(0));
+        ui.add(this.add.rectangle(W / 2, 450, 420, 400, 0xffffff).setStrokeStyle(8, 0x1b2735));
+
+        ui.add(this.add.text(W / 2, 320, 'GAME OVER', {
+          fontFamily: 'Arial Black, Arial, sans-serif', fontSize: '50px', color: '#e53935'
+        }).setOrigin(0.5));
+
+        ui.add(this.add.text(W / 2, 400, 'Score: ' + this.score, {
+          fontFamily: 'Arial, sans-serif', fontSize: '40px', color: '#1b2735', fontStyle: 'bold'
+        }).setOrigin(0.5));
+
+        ui.add(this.add.text(W / 2, 455, isNewBest ? 'NEW BEST!' : 'Best: ' + this.best, {
+          fontFamily: 'Arial, sans-serif', fontSize: '30px',
+          color: isNewBest ? '#f9a825' : '#555555', fontStyle: 'bold'
+        }).setOrigin(0.5));
+
+        // Play Again button
+        const btn = this.add.rectangle(W / 2, 560, 300, 96, 0x43a047).setStrokeStyle(6, 0x1b5e20);
+        const btnText = this.add.text(W / 2, 560, 'PLAY AGAIN', {
+          fontFamily: 'Arial Black, Arial, sans-serif', fontSize: '36px', color: '#ffffff'
+        }).setOrigin(0.5);
+        ui.add([btn, btnText]);
+
+        this.tweens.add({ targets: ui, alpha: 1, duration: 250 });
+
+        // Small delay so a panicked tap right at the crash doesn't restart instantly
+        this.time.delayedCall(450, () => {
+          btn.setInteractive({ useHandCursor: true });
+          btn.on('pointerdown', () => btn.setFillStyle(0x388e3c));
+          btn.on('pointerout', () => btn.setFillStyle(0x43a047));
+          btn.on('pointerup', () => this.scene.restart());
+          this.input.keyboard.once('keydown-SPACE', () => this.scene.restart());
+        });
+      }
+
+      update(time, delta) {
+        const dt = delta / 1000;
+
+        if (this.state === 'over') return;
+
+        // Clouds drift even on the start screen
+        const cloudSpeed = (this.state === 'playing' ? this.speed : 120) * 0.12;
+        this.clouds.forEach(c => {
+          c.x -= cloudSpeed * dt;
+          if (c.x < -100) {
+            c.x = W + 100;
+            c.y = Phaser.Math.Between(220, 560);
+          }
+        });
+
+        if (this.state !== 'playing') return;
+
+        this.speed = Math.min(MAX_SPEED, this.speed + 10 * dt);
+        this.groundTile.tilePositionX += this.speed * dt;
+
+        // Spin a little while airborne
+        if (this.onGround()) this.player.angle = 0;
+        else this.player.angle += 300 * dt;
+
+        this.obstacles.getChildren().slice().forEach(o => {
+          o.body.setVelocityX(-this.speed);
+          if (!o.scored && o.x < this.player.x - 30) {
+            o.scored = true;
+            this.addScore();
+          }
+          if (o.x < -80) o.destroy();
+        });
+      }
+    }
+
+    new Phaser.Game({
+      type: Phaser.AUTO,
+      parent: 'game',
+      backgroundColor: '#1b2735',
+      scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        width: W,
+        height: H
+      },
+      physics: {
+        default: 'arcade',
+        arcade: { gravity: { y: GRAVITY }, debug: false }
+      },
+      input: { activePointers: 2 },
+      scene: GameScene
+    });
+  </script>
+</body>
+</html>

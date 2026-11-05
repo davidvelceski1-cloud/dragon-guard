@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport-fit=cover is needed so env(safe-area-inset-*) works on notched phones -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#120a26">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Dragon Guard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="wrap">
+    <div id="frame">
+      <div id="stage">
+        <canvas id="game"></canvas>
+
+        <!-- Title -->
+        <section id="screen-title" class="screen title">
+          <div class="logo-wrap">
+            <div class="logo">Dragon<br>Guard</div>
+            <div class="tagline">Protect the royal family!</div>
+          </div>
+          <div class="menu">
+            <button class="btn" id="btn-play" data-action="play">Play</button>
+            <button class="btn secondary" data-action="levels">Level Select</button>
+            <button class="btn secondary" data-action="howto">How to Play</button>
+            <button class="btn small" data-action="mute"><span class="mute-label">Sound: On</span></button>
+          </div>
+        </section>
+
+        <!-- Level select -->
+        <section id="screen-levels" class="screen hidden">
+          <h2>Choose a Level</h2>
+          <div id="level-grid" class="level-grid"></div>
+          <button class="btn secondary" data-action="back">Back</button>
+        </section>
+
+        <!-- How to play -->
+        <section id="screen-howto" class="screen hidden">
+          <h2>How to Play</h2>
+          <div class="howto scroll">
+            <ul>
+              <li>Dragons fly down 4 lanes toward the royal family on the castle wall.</li>
+              <li><b>1.</b> Tap a <b>cannon</b> to select it.<br><b>2.</b> Tap a <b>lane or dragon</b> to fire at the lowest dragon in that lane.</li>
+              <li>Match the dragon's colour:<br>🔥 Red flame · 💧 Blue droplet<br>🍃 Green leaf · ⭐ Yellow star</li>
+              <li>A <b>wrong colour</b> wastes the shot and makes the dragon angry and fast!</li>
+              <li><b>Armoured dragons</b> change colour after each hit. Their rings show the colours still to come.</li>
+              <li>Ammo is limited. If you can't beat every dragon with what's left, the level is lost.</li>
+              <li><b>3 correct hits in a row</b> charge the 👑 <b>Royal Volley</b>: tap it to clear the lowest dragon in every lane.</li>
+              <li>Each dragon that reaches the wall costs a ❤️. Lose all 3 and the castle falls.</li>
+            </ul>
+          </div>
+          <button class="btn" data-action="back">Got it!</button>
+        </section>
+
+        <!-- Pause -->
+        <section id="screen-pause" class="screen hidden">
+          <h2>Paused</h2>
+          <div class="menu">
+            <button class="btn" data-action="resume">Resume</button>
+            <button class="btn secondary" data-action="retry">Restart</button>
+            <button class="btn small" data-action="mute"><span class="mute-label">Sound: On</span></button>
+            <button class="btn secondary" data-action="menu">Menu</button>
+          </div>
+        </section>
+
+        <!-- Level complete -->
+        <section id="screen-complete" class="screen hidden">
+          <h2 id="complete-title">Level Complete!</h2>
+          <div id="complete-stars" class="big-stars"></div>
+          <div id="complete-score" class="stat"></div>
+          <div id="complete-detail" class="sub"></div>
+          <div id="complete-best" class="sub"></div>
+          <div class="menu">
+            <button class="btn" id="btn-next" data-action="next">Next Level ▶</button>
+            <button class="btn secondary" data-action="retry">Retry</button>
+            <button class="btn small" data-action="menu">Menu</button>
+          </div>
+        </section>
+
+        <!-- Game over -->
+        <section id="screen-gameover" class="screen hidden">
+          <h2 id="go-title">Oh no!</h2>
+          <div id="go-reason" class="sub"></div>
+          <div id="go-stats" class="stat"></div>
+          <div class="menu">
+            <button class="btn" data-action="retry">Retry</button>
+            <button class="btn secondary" data-action="menu">Menu</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shown on touch devices held in landscape -->
+  <div id="rotate">
+    <div class="phone"></div>
+    <p>Please rotate your phone</p>
+    <small>Dragon Guard is played in portrait mode</small>
+  </div>
+
+  <!-- Plain scripts (no modules) so the game also runs straight from index.html -->
+  <script src="js/config.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/levels.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
